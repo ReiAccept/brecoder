@@ -1,0 +1,22 @@
+{
+    "interval": 10,
+    "streams": [{
+        "platform": "bilibili",
+        "name": "ReiAccept",
+        "room_id": 6930569,
+        "recoder": "ffmpeg",
+        "path": "record/bilibili/ReiAccept"
+    },{
+        "platform": "bilibili",
+        "name": "Neuro",
+        "room_id": 1852504554,
+        "recoder": "ffmpeg",
+        "path": "record/bilibili/Neuro"
+    },{
+        "platform": "bilibili",
+        "name": "DOTA2-Carrot",
+        "room_id": 23926656,
+        "recoder": "ffmpeg",
+        "path": "record/bilibili/DOTA2-Carrot"
+    }]
+}
