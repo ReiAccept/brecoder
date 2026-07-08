@@ -156,7 +156,7 @@ impl RecorderManager {
 
         match handle {
             Some(mut h) => {
-                info!("🛑 Stopping recording for room {}: {}", room_id, h.output_path);
+                info!("Stopping recording for room {}: {}", room_id, h.output_path);
                 // Send SIGTERM first, then kill on error
                 if let Err(e) = h.child.kill().await {
                     error!("Failed to kill ffmpeg for room {}: {}", room_id, e);

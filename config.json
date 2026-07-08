@@ -12,14 +12,6 @@
         "format": "mp4",
         "path": "record/bilibili/ReiAccept",
         "upload": true
-    },{
-        "platform": "bilibili",
-        "name": "小啁啾和大家",
-        "room_id": 22391136,
-        "recoder": "ffmpeg",
-        "format": "flv",
-        "path": "record/bilibili/小啁啾和大家",
-        "upload": true
     }],
     "upload": {
         "title": "{streamer.name}_{stream.title}_%Y-%m-%d %H_%M_%S",
