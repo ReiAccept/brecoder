@@ -4,32 +4,100 @@ use std::path::Path;
 /// Top-level config file (config.json)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
+    /// Server bind address and port
+    #[serde(default)]
+    pub server: ServerConfig,
     /// Polling interval in seconds
     pub interval: u64,
     /// Path to ffmpeg binary (defaults to "ffmpeg")
     #[serde(default = "default_ffmpeg_path")]
     pub ffmpeg_path: String,
     /// Streams to monitor
-    pub streams: Vec<StreamConfig>,
+    #[serde(default)]
+    pub streamers: Vec<StreamConfig>,
+    /// Upload configuration (if present, enables upload after recording)
+    #[serde(default)]
+    pub upload: Option<UploadConfig>,
+}
+
+/// Server configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ServerConfig {
+    #[serde(default = "default_addr")]
+    pub addr: String,
+    #[serde(default = "default_port")]
+    pub port: u16,
+}
+
+impl Default for ServerConfig {
+    fn default() -> Self {
+        Self {
+            addr: default_addr(),
+            port: default_port(),
+        }
+    }
+}
+
+fn default_addr() -> String {
+    "0.0.0.0".to_string()
+}
+
+fn default_port() -> u16 {
+    3000
 }
 
 fn default_ffmpeg_path() -> String {
     "ffmpeg".to_string()
 }
 
-/// A single stream entry in config.json
+/// Upload configuration for Bilibili submission
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UploadConfig {
+    /// Title template with variables: {streamer.name}, {stream.title}, plus chrono format specifiers
+    pub title: String,
+    /// 1 = original, 2 = reprint
+    #[serde(default = "default_copyright")]
+    pub copyright: u8,
+    /// Source URL template (for reprint)
+    #[serde(default)]
+    pub source: String,
+    /// Category/TID for submission
+    pub tid: u16,
+    /// Tags for the video
+    #[serde(default)]
+    pub tags: Vec<String>,
+    /// Video description template
+    #[serde(default)]
+    pub desc: String,
+    /// Dynamic/feed post template
+    #[serde(default)]
+    pub dynamic: String,
+}
+
+fn default_copyright() -> u8 {
+    1
+}
+
+/// A single stream/streamer entry in config.json
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StreamConfig {
     pub platform: String,
     pub name: String,
     pub room_id: u64,
     /// Recorder tool to use (e.g. "ffmpeg")
-    pub recoder: String,
+    #[serde(alias = "recoder")]
+    pub recorder: String,
     /// Base output directory for recordings
     pub path: String,
     /// Stream quality number (defaults to 10000 = original)
     #[serde(default = "default_quality")]
     pub quality: u64,
+    /// Whether to upload after recording stops
+    #[serde(default)]
+    pub upload: bool,
+    /// Output format override (e.g. "flv", "mp4")
+    #[serde(default)]
+    pub format: Option<String>,
 }
 
 fn default_quality() -> u64 {

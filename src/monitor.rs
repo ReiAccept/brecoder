@@ -1,10 +1,10 @@
 use crate::bilibili::BilibiliClient;
-use crate::config::{AppConfig, StreamConfig, StreamStatus};
+use crate::config::{AppConfig, StreamConfig, StreamStatus, UploadConfig};
 use crate::recorder::RecorderManager;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 
 /// Shared application state, accessible from both the monitor and web server.
 #[derive(Clone)]
@@ -14,14 +14,20 @@ pub struct AppState {
     pub previous: Arc<RwLock<HashMap<u64, bool>>>,
     /// Manages ffmpeg recording processes
     pub recorder: RecorderManager,
+    /// Path to the cookies file (for upload authentication)
+    pub cookies_path: Arc<String>,
+    /// Global upload configuration from config.json
+    pub upload_config: Arc<Option<UploadConfig>>,
 }
 
 impl AppState {
-    pub fn new(ffmpeg_path: &str) -> Self {
+    pub fn new(ffmpeg_path: &str, cookies_path: String, upload_config: Option<UploadConfig>) -> Self {
         Self {
             statuses: Arc::new(RwLock::new(Vec::new())),
             previous: Arc::new(RwLock::new(HashMap::new())),
             recorder: RecorderManager::new(ffmpeg_path),
+            cookies_path: Arc::new(cookies_path),
+            upload_config: Arc::new(upload_config),
         }
     }
 }
@@ -43,12 +49,12 @@ pub async fn run_monitor(
     let interval = std::time::Duration::from_secs(config.interval);
     info!(
         "Monitor started — checking {} stream(s) every {} seconds",
-        config.streams.len(),
+        config.streamers.len(),
         config.interval
     );
 
     // Run initial check immediately
-    check_all_streams(&client, &config.streams, &state).await;
+    check_all_streams(&client, &config.streamers, &state).await;
 
     // Then loop on the interval
     let mut tick = tokio::time::interval(interval);
@@ -57,7 +63,7 @@ pub async fn run_monitor(
 
     loop {
         tick.tick().await;
-        check_all_streams(&client, &config.streams, &state).await;
+        check_all_streams(&client, &config.streamers, &state).await;
     }
 }
 
@@ -101,7 +107,11 @@ async fn check_all_streams(client: &BilibiliClient, streams: &[StreamConfig], st
                             &stream.path,
                             &result.status.title,
                             &result.stream_headers,
-                            result.suffix.as_deref(),
+                            // Use config.format if set, otherwise use the suffix from the plugin
+                            stream
+                                .format
+                                .as_deref()
+                                .or(result.suffix.as_deref()),
                         )
                         .await;
                 }
@@ -117,6 +127,8 @@ async fn check_all_streams(client: &BilibiliClient, streams: &[StreamConfig], st
             // Re-acquire the write lock to update previous state
             prev = state.previous.write().await;
         } else if was_live && !result.status.streaming {
+            let stream_title = result.status.title.clone();
+
             info!(
                 "TRANSITION: {} (room {}) just went OFFLINE",
                 stream.name, stream.room_id
@@ -131,6 +143,50 @@ async fn check_all_streams(client: &BilibiliClient, streams: &[StreamConfig], st
                     "Recording saved for {}: {}",
                     stream.name, path
                 );
+
+                // Trigger upload if enabled for this streamer
+                if stream.upload {
+                    if let Some(ref upload_cfg) = *state.upload_config {
+                        let cookies_path = state.cookies_path.as_ref().clone();
+                        let stream_cfg = stream.clone();
+                        let upload_cfg_clone = upload_cfg.clone();
+
+                        info!(
+                            "Scheduling upload for {}: {}",
+                            stream.name, path
+                        );
+
+                        tokio::spawn(async move {
+                            match crate::uploader::upload_video(
+                                &cookies_path,
+                                &stream_cfg,
+                                &upload_cfg_clone,
+                                &path,
+                                &stream_title,
+                            )
+                            .await
+                            {
+                                Ok(()) => {
+                                    info!(
+                                        "Upload completed for {}: {}",
+                                        stream_cfg.name, path
+                                    );
+                                }
+                                Err(e) => {
+                                    error!(
+                                        "Upload failed for {} ({}): {}",
+                                        stream_cfg.name, path, e
+                                    );
+                                }
+                            }
+                        });
+                    } else {
+                        warn!(
+                            "Upload enabled for {} but no [upload] section in config.json — skipping upload",
+                            stream.name
+                        );
+                    }
+                }
             }
 
             // Re-acquire the write lock to update previous state

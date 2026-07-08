@@ -98,7 +98,7 @@ impl RecorderManager {
         }
 
         info!(
-            "🎬 Starting ffmpeg for room {} -> {}",
+            "Starting ffmpeg for room {} -> {}",
             room_id, output_path
         );
 
@@ -146,7 +146,7 @@ impl RecorderManager {
             },
         );
 
-        info!("✅ Recording started for room {} at {}", room_id, output_path);
+        info!("Recording started for room {} at {}", room_id, output_path);
     }
 
     /// Stop recording a room (kill ffmpeg).
@@ -163,7 +163,7 @@ impl RecorderManager {
                 }
                 // Wait for the process to fully exit (ignore result)
                 let _ = h.child.wait().await;
-                info!("✅ Recording stopped for room {}", room_id);
+                info!("Recording stopped for room {}", room_id);
                 Some(h.output_path)
             }
             None => {
@@ -182,7 +182,7 @@ impl RecorderManager {
             return;
         }
 
-        info!("🛑 Stopping all {} active recording(s)...", count);
+        info!("Stopping all {} active recording(s)...", count);
 
         for (room_id, mut handle) in procs.drain() {
             info!("  Killing ffmpeg for room {} ({})", room_id, handle.output_path);
@@ -192,7 +192,7 @@ impl RecorderManager {
             let _ = handle.child.wait().await;
         }
 
-        info!("✅ All recordings stopped.");
+        info!("All recordings stopped.");
     }
 }
 

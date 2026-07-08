@@ -1,22 +1,31 @@
 {
+    "server": {
+        "addr": "0.0.0.0",
+        "port": 3000
+    },
     "interval": 10,
-    "streams": [{
+    "streamers": [{
         "platform": "bilibili",
         "name": "ReiAccept",
         "room_id": 6930569,
         "recoder": "ffmpeg",
-        "path": "record/bilibili/ReiAccept"
+        "format": "mp4",
+        "path": "record/bilibili/ReiAccept",
+        "upload": true
     },{
         "platform": "bilibili",
-        "name": "Neuro",
-        "room_id": 1852504554,
+        "name": "小啁啾和大家",
+        "room_id": 22391136,
         "recoder": "ffmpeg",
-        "path": "record/bilibili/Neuro"
-    },{
-        "platform": "bilibili",
-        "name": "DOTA2-Carrot",
-        "room_id": 23926656,
-        "recoder": "ffmpeg",
-        "path": "record/bilibili/DOTA2-Carrot"
-    }]
+        "format": "flv",
+        "path": "record/bilibili/小啁啾和大家",
+        "upload": true
+    }],
+    "upload": {
+        "title": "{streamer.name}_{stream.title}_%Y-%m-%d %H_%M_%S",
+        "copyright": 2,
+        "source": "https://live.bilibili.com/{streamer.room_id}",
+        "tid": 21,
+        "tags": ["直播录播"]
+    }
 }

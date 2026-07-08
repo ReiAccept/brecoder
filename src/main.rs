@@ -3,6 +3,7 @@ mod config;
 mod monitor;
 mod recorder;
 mod server;
+mod uploader;
 
 use config::{AppConfig, CookiesFile};
 use monitor::{run_monitor, AppState};
@@ -22,10 +23,13 @@ async fn main() {
         Ok(c) => {
             info!(
                 "Loaded config: {} stream(s), interval={}s, ffmpeg={}",
-                c.streams.len(),
+                c.streamers.len(),
                 c.interval,
                 c.ffmpeg_path
             );
+            if c.upload.is_some() {
+                info!("Upload is configured and enabled");
+            }
             c
         }
         Err(e) => {
@@ -46,8 +50,12 @@ async fn main() {
         }
     };
 
+    // Extract upload config before moving config into monitor
+    let upload_config = config.upload.clone();
+    let cookies_path = "cookies.json".to_string();
+
     // Shared application state
-    let state = AppState::new(&config.ffmpeg_path);
+    let state = AppState::new(&config.ffmpeg_path, cookies_path, upload_config);
 
     // Spawn the monitor in the background
     let monitor_state = state.clone();
@@ -56,10 +64,11 @@ async fn main() {
         run_monitor(monitor_config, cookies, monitor_state).await;
     });
 
-    // Start the web server
+    // Start the web server (use config values)
+    let bind_addr = format!("{}:{}", config.server.addr, config.server.port);
     let app = server::build_router(state.clone());
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    info!("Web server listening on http://0.0.0.0:3000");
+    let listener = tokio::net::TcpListener::bind(&bind_addr).await.unwrap();
+    info!("Web server listening on http://{}", bind_addr);
 
     // Graceful shutdown on Ctrl+C
     let server = axum::serve(listener, app);
@@ -71,7 +80,7 @@ async fn main() {
             }
         }
         _ = tokio::signal::ctrl_c() => {
-            info!("\n🛑 Shutdown signal received (Ctrl+C)...");
+            info!("\nShutdown signal received (Ctrl+C)...");
         }
     }
 
