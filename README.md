@@ -12,5 +12,5 @@
 该项目以纯 rust 开发(至少目前是, 不排除未来引入前端的可能性) 所以你只要愉快的 cargo run 就可以把项目跑起来啦
 
 ## 致谢
-1. ~~[biliup-rs](https://github.com/biliup/biliup-rs)~~ 在该项目停止维护之后直接使用 [biliup](https://github.com/biliup/biliup) 中的部分代码, 见 `crates/biliup`
+1. ~~[biliup-rs](https://github.com/biliup/biliup-rs)~~ 在该项目停止维护之后将 [biliup](https://github.com/biliup/biliup) 中部分作为 crates 使用
 
