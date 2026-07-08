@@ -48,21 +48,21 @@ impl BilibiliClient {
     ///
     /// This performs the full check in one API round-trip: it fetches room
     /// info, determines liveness, and if live also resolves the play URL.
-    pub async fn check_room(&self, stream: &StreamConfig) -> Option<RoomCheckResult> {
-        let url = format!("https://live.bilibili.com/{}", stream.room_id);
+    pub async fn check_room(&self, streamer: &StreamConfig) -> Option<RoomCheckResult> {
+        let url = format!("https://live.bilibili.com/{}", streamer.room_id);
 
         debug!(
             "Checking room {} ({}) via biliup plugin",
-            stream.name, stream.room_id
+            streamer.name, streamer.room_id
         );
 
         let request = LiveRequest {
             client: self.client.clone(),
             url,
-            name: stream.name.clone(),
+            name: streamer.name.clone(),
             options: LiveOptions {
                 bilibili: BilibiliOptions {
-                    qn: stream.quality as u32,
+                    qn: streamer.quality as u32,
                     ..Default::default()
                 },
                 ..Default::default()
@@ -77,13 +77,13 @@ impl BilibiliClient {
             Ok(LiveStatus::Live { stream: live }) => {
                 info!(
                     "[LIVE] {} (room {}) — title=\"{}\", suffix={}",
-                    stream.name, stream.room_id, live.title, live.suffix
+                    streamer.name, streamer.room_id, live.title, live.suffix
                 );
                 Some(RoomCheckResult {
                     status: StreamStatus {
-                        name: stream.name.clone(),
-                        platform: stream.platform.clone(),
-                        room_id: stream.room_id,
+                        name: streamer.name.clone(),
+                        platform: streamer.platform.clone(),
+                        room_id: streamer.room_id,
                         streaming: true,
                         title: live.title,
                         last_checked: Local::now()
@@ -98,13 +98,13 @@ impl BilibiliClient {
             Ok(LiveStatus::Offline) => {
                 info!(
                     "[OFFLINE] {} (room {})",
-                    stream.name, stream.room_id
+                    streamer.name, streamer.room_id
                 );
                 Some(RoomCheckResult {
                     status: StreamStatus {
-                        name: stream.name.clone(),
-                        platform: stream.platform.clone(),
-                        room_id: stream.room_id,
+                        name: streamer.name.clone(),
+                        platform: streamer.platform.clone(),
+                        room_id: streamer.room_id,
                         streaming: false,
                         title: String::new(),
                         last_checked: Local::now()
@@ -119,7 +119,7 @@ impl BilibiliClient {
             Err(e) => {
                 warn!(
                     "Bilibili check failed for {} (room {}): {}",
-                    stream.name, stream.room_id, e
+                    streamer.name, streamer.room_id, e
                 );
                 None
             }
